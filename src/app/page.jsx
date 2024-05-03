@@ -1,12 +1,15 @@
 "use client";
 import styles from "./page.module.css";
-import { Table } from "antd";
-import { Rate } from "antd";
+import { Rate, Button, Table } from "antd";
 import { Form, Input } from "antd";
 import { Col, Row } from "antd";
-import React, { useState } from "react";
+import React, { useCallback, useState, useRef } from "react";
+import { utils, writeFileXLSX } from "xlsx";
+import { RedoOutlined, FileExcelOutlined } from "@ant-design/icons";
 
 export default function Home() {
+  // const tbl = useRef();
+
   const [form] = Form.useForm();
 
   const columns = [
@@ -45,6 +48,7 @@ export default function Home() {
         compare: (a, b) => a.evolution - b.evolution,
         multiple: 2,
       },
+      render: (evolution) => <Rate disabled defaultValue={evolution} />,
     },
     {
       title: "Last Update",
@@ -61,7 +65,7 @@ export default function Home() {
       module: "PP",
       requestType: "Incident",
       technician: "Nutchanart Wongsuban",
-      evolution: <Rate disabled defaultValue={5} />,
+      evolution: 5,
       lastUpdate: "03/05/2024",
     },
     {
@@ -72,29 +76,29 @@ export default function Home() {
       module: "MM",
       requestType: "New Requirement",
       technician: "Nutchanart Wongsuban",
-      evolution: <Rate disabled defaultValue={3} />,
+      evolution: 3,
       lastUpdate: "03/05/2024",
     },
     {
       key: "3",
       ticketId: 15,
-      customer: "NutWONG",
+      customer: "Babe",
       subject: "ไม่สามารถเปิด PO",
       module: "MM",
       requestType: "New Requirement",
       technician: "Nutchanart Wongsuban",
-      evolution: <Rate disabled defaultValue={2} />,
+      evolution: 2,
       lastUpdate: "03/05/2024",
     },
     {
       key: "4",
       ticketId: 103,
-      customer: "NutWONG",
+      customer: "Babe",
       subject: "ไม่สามารถเปิด PO",
-      module: "MM",
+      module: "PP",
       requestType: "New Requirement",
       technician: "Nutchanart Wongsuban",
-      evolution: <Rate disabled defaultValue={5} />,
+      evolution: 2,
       lastUpdate: "03/05/2024",
     },
     {
@@ -105,49 +109,99 @@ export default function Home() {
       module: "MM",
       requestType: "New Requirement",
       technician: "Nutchanart Wongsuban",
-      evolution: <Rate disabled defaultValue={3} />,
+      evolution: 3,
       lastUpdate: "03/05/2024",
     },
   ];
 
   const [filterData, setFilterData] = useState(data);
+  const [inputTech, setInputTech] = useState("");
+  const [inputSap, setInputSap] = useState("");
+  const [inputRequest, setInputRequest] = useState("");
+  const [inputCustomer, setInputCustomer] = useState("");
 
   const onChange = (pagination, filters, sorter, extra) => {
     console.log("params", pagination, filters, sorter, extra);
   };
 
-  const onFilterTechnician = (value) => {
-    console.log(value);
-    const filter = data.filter((item) =>
-      item.technician.toLowerCase().includes(value)
-    );
+  // const onFilterTechnician = (value) => {
+  //   const filter = data.filter((item) =>
+  //     item.technician.toLowerCase().includes(value)
+  //   );
+
+  //   setFilterData(filter);
+  // };
+
+  // const onFilterSap = (value) => {
+  //   const filter = data.filter((item) =>
+  //     item.module.toLowerCase().includes(value)
+  //   );
+
+  //   setFilterData(filter);
+  // };
+
+  // const onFilterRequest = (value) => {
+  //   const filter = data.filter((item) =>
+  //     item.requestType.toLowerCase().includes(value)
+  //   );
+
+  //   setFilterData(filter);
+  // };
+
+  // const onFilterCustomer = (value) => {
+  //   const filter = data.filter((item) =>
+  //     item.customer.toLowerCase().includes(value)
+  //   );
+
+  //   setFilterData(filter);
+  // };
+
+  const filterAll = (value, fieldName) => {
+    let filter = [];
+
+    if (fieldName === "tech") {
+      filter = filterData.filter((item) => {
+        return item.technician.toLowerCase().includes(value);
+      });
+    }
+
+    if (fieldName === "module") {
+      filter = filterData.filter((item) => {
+        return item.module.toLowerCase().includes(value);
+      });
+    }
+
+    if (fieldName === "request") {
+      filter = filterData.filter((item) => {
+        return item.requestType.toLowerCase().includes(value);
+      });
+    }
+
+    if (fieldName === "customer") {
+      filter = filterData.filter((item) => {
+        return item.customer.toLowerCase().includes(value);
+      });
+    }
+
+    console.log("filter :>> ", filter);
 
     setFilterData(filter);
   };
 
-  const onFilterSap = (value) => {
-    const filter = data.filter((item) =>
-      item.module.toLowerCase().includes(value)
+  const currentDate = new Date();
+  const day = currentDate.getDate().toString().padStart(2, "0");
+  const month = currentDate.getMonth().toString().padStart(2, "0");
+
+  /* get state data and export to XLSX */
+  const exportFile = useCallback(() => {
+    const ws = utils.json_to_sheet(filterData);
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, "Data");
+    writeFileXLSX(
+      wb,
+      `Ticket_Evolution_${day}_${month}_${currentDate.getFullYear()}.xlsx`
     );
-
-    setFilterData(filter);
-  };
-
-  const onFilterRequest = (value) => {
-    const filter = data.filter((item) =>
-      item.requestType.toLowerCase().includes(value)
-    );
-
-    setFilterData(filter);
-  };
-
-  const onFilterCustomer = (value) => {
-    const filter = data.filter((item) =>
-      item.customer.toLowerCase().includes(value)
-    );
-
-    setFilterData(filter);
-  };
+  }, [filterData]);
 
   return (
     <main className={styles.main}>
@@ -165,8 +219,11 @@ export default function Home() {
               <Col span={12}>
                 <Form.Item label="Technician :">
                   <Input
+                    value={inputTech}
                     onChange={(e) => {
-                      onFilterTechnician(e.target.value);
+                      // onFilterTechnician(e.target.value);
+                      setInputTech(e.target.value);
+                      filterAll(e.target.value, "tech");
                     }}
                   />
                 </Form.Item>
@@ -174,8 +231,11 @@ export default function Home() {
               <Col span={12}>
                 <Form.Item label="SAP Module :">
                   <Input
+                    value={inputSap}
                     onChange={(e) => {
-                      onFilterSap(e.target.value);
+                      // onFilterSap(e.target.value);
+                      setInputSap(e.target.value);
+                      filterAll(e.target.value, "module");
                     }}
                   />
                 </Form.Item>
@@ -184,8 +244,11 @@ export default function Home() {
               <Col span={12}>
                 <Form.Item label="Request Type :">
                   <Input
+                    value={inputRequest}
                     onChange={(e) => {
-                      onFilterRequest(e.target.value);
+                      // onFilterRequest(e.target.value);
+                      setInputRequest(e.target.value);
+                      filterAll(e.target.value, "request");
                     }}
                   />
                 </Form.Item>
@@ -193,8 +256,11 @@ export default function Home() {
               <Col span={12}>
                 <Form.Item label="Customer :">
                   <Input
+                    value={inputCustomer}
                     onChange={(e) => {
-                      onFilterCustomer(e.target.value);
+                      // onFilterCustomer(e.target.value);
+                      setInputCustomer(e.target.value);
+                      filterAll(e.target.value, "customer");
                     }}
                   />
                 </Form.Item>
@@ -204,7 +270,74 @@ export default function Home() {
         </div>
       </div>
 
-      <Table columns={columns} dataSource={filterData} onChange={onChange} />
+      <div style={{ display: "flex", width: "100%" }}>
+        <div style={{ flex: "1", display: "flex", justifyContent: "center" }}>
+          <Button
+            onClick={() => {
+              setFilterData(data);
+              setInputTech("");
+              setInputSap("");
+              setInputRequest("");
+              setInputCustomer("");
+            }}
+            icon={<RedoOutlined />}
+          >
+            refresh
+          </Button>
+        </div>
+        <div style={{ flex: "0" }}>
+          <Button
+            style={{ color: "green" }}
+            icon={<FileExcelOutlined style={{ color: "green" }} />}
+            onClick={() => {
+              // // generate workbook from table element
+              // const wb = utils.table_to_book(tbl.current);
+              // // write to XLSX
+              // writeFileXLSX(
+              //   wb,
+              //   `Ticket_Evolution_${day}_${month}_${currentDate.getFullYear()}.xlsx`
+              // );
+              exportFile();
+            }}
+          >
+            Export Exel
+          </Button>
+        </div>
+      </div>
+
+      <Table
+        style={{ width: "100%" }}
+        id="aa"
+        columns={columns}
+        dataSource={filterData}
+        onChange={onChange}
+      />
+
+      {/* <table ref={tbl}>
+        <thead>
+          <tr>
+            {columns.map((column) => {
+              return <td key={column.dataIndex}>{column.title}</td>;
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {filterData.map((row) => {
+            return (
+              <tr key={row.key}>
+                <td>{row.ticketId}</td>
+                <td>{row.customer}</td>
+                <td>{row.subject}</td>
+                <td>{row.module}</td>
+                <td>{row.requestType}</td>
+                <td>{row.technician}</td>
+                <td>{row.evolution}</td>
+                <td>{row.lastUpdate}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table> */}
     </main>
   );
 }
